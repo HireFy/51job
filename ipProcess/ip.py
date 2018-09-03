@@ -8,7 +8,7 @@ import gloSetting as gl
 
 def ip_to_queue():
     q = queue.Queue()
-    url = 'http://45.76.218.205:8000'
+    url = gl.url_proxy
     while (True):
         try:
             r = requests.get(url, timeout=5)
@@ -26,7 +26,8 @@ def ip_to_queue():
 
 
 # 把存有ip的queue格式化成requests的proxy接受的形式
-def get_proxy_style(ip_queue):
+def get_proxy_style():
+    ip_queue = ip_to_queue()
     proxies = queue.Queue()
 
     flag = True
@@ -41,7 +42,7 @@ def get_proxy_style(ip_queue):
 
 
 def get_clean_proxies(proxies, **thread_num):
-    url = 'https://jobs.51job.com/'
+    url = gl.url_to_check
     # 有效的ip队列
     ok_proxies = queue.Queue()
 
@@ -64,20 +65,7 @@ def get_clean_proxies(proxies, **thread_num):
 
                 proxies.task_done()
                 print('-------------------------------------')
-
-            except requests.Timeout as e:
-                proxies.task_done()
-                print(threading.current_thread().name + ' is processing')
-                print(e)
-                print('remove proxy:', proxy)
-                print('-------------------------------------')
-            except requests.ConnectionError as e:
-                proxies.task_done()
-                print(threading.current_thread().name + ' is processing')
-                print(e)
-                print('remove proxy:', proxy)
-                print('-------------------------------------')
-            except requests.InvalidHeader as e:
+            except requests.RequestException as e:
                 proxies.task_done()
                 print(threading.current_thread().name + ' is processing')
                 print(e)
@@ -106,19 +94,15 @@ def get_proxy():
     if gl.proxies.qsize() == 0:
         proxies = get_proxies()
     gl.lock.release()
-
-    proxy = gl.proxies.get()
-    print('###当前proxies的ip数: ', gl.proxies.qsize())
-    return proxy
+    return gl.proxies.get()
 
 
 def get_proxies():
     # 多线程的话，就不保存在本地文件
-    # 应该保存在各自线程的queue里面s
+    # 应该保存在各自线程的queue里面
     ip_start = time()
-    gl.proxies = ip_to_queue()
-    gl.proxies = get_proxy_style(gl.proxies)
-    gl.proxies = get_clean_proxies(gl.proxies, thread_num=180)
+    gl.proxies = get_proxy_style()
+    gl.proxies = get_clean_proxies(gl.proxies, thread_num=300)
     ip_cost_time = time() - ip_start
     print('可用的ip: ', gl.proxies.qsize())
     print('%s清洗ip的时间: %d' % (threading.current_thread().name, ip_cost_time))

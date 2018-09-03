@@ -12,10 +12,13 @@ gl.proxy = ip.get_proxy()
 def main():
     start = time()
     # 指定线程数爬取指定页数，
-    job.handle_page_to_job_object_queue(10, 8)
+    job.handle_page_to_job_object_queue(10, 10)
     print("job_object_queue.qsize(): ", gl.job_object_queue.qsize())
 
-    final_job_object_queue = job.pack_tag(thread_num=50)
+    final_job_object_queue = job.pack_tag(thread_num=200)
+
+    print("final_job_object_queue.qsize() : " + str(final_job_object_queue.qsize()))
+
     job.save_job_object_queue_to_csv(final_job_object_queue)
 
     result = time() - start

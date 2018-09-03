@@ -59,31 +59,9 @@ def put_job_object_queue(url):
             # 获得新的proxy之后就直接开始下次循环
         except requests.RequestException as e:
             print(e)
-            proxy = ip.getProxy()
+            proxy = ip.get_proxy()
             print('尝试新的proxy')
             continue
-        except Exception as e:
-            print(e)
-            proxy = ip.getProxy()
-            print('尝试新的proxy')
-            continue
-        # except requests.exceptions.Timeout as e:
-        #     print(e)
-        #     proxy = ip.getProxy()
-        #     print('尝试新的proxy')
-        #     continue
-        # except requests.exceptions.ProxyError as e:
-        #     print(e)
-        #     proxy = ip.getProxy()
-        #     print('尝试新的proxy')
-        #     # print('----------------------')
-        #     continue
-        # except requests.exceptions.ConnectionError as e:
-        #     print(e)
-        #     proxy = ip.getProxy()
-        #     print('尝试新的proxy')
-        #     # print('----------------------')
-        #     continue
 
         # 不报异常就取消循环
         flag = False
@@ -121,7 +99,7 @@ def get_tag(url):
     flag = True
 
     # TODO 查看信息
-    print('getTag()当前处理链接:', tag_url)
+    print(threading.current_thread().getName() + ' getTag()当前处理链接:', tag_url)
     print('getTag()获得的ip:', proxy)
     while flag:
         # headers = {'user-agent','Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/66.0.3359.181 Chrome/66.0.3359.181 Safari/537.36'}
@@ -135,25 +113,7 @@ def get_tag(url):
             proxy = ip.get_proxy()
             print('尝试新的proxy')
             continue
-        # except requests.exceptions.Timeout as e:
-        #     print(e)
-        #     proxy = ip.getProxy()
-        #     print('尝试新的proxy')
-        #     # print('----------------------')
-        #     continue
-        # except requests.exceptions.ProxyError as e:
-        #     print(e)
-        #     proxy = ip.getProxy()
-        #     print('尝试新的proxy')
-        #     # print('----------------------')
-        #     continue
-        # except requests.exceptions.ConnectionError as e:
-        #     print(e)
-        #     proxy = ip.getProxy()
-        #     print('尝试新的proxy')
-        #     # print('----------------------')
-        #     continue
-        # 不报异常就取消循环
+
         flag = False
 
     r_tag.encoding = 'gbk'
@@ -163,13 +123,16 @@ def get_tag(url):
     # 找到详情页第一行标签
     tag_1_list = []
     tag = tag_soup.find_all('span', 'sp4')
-    for i in tag:
-        tag_1_list.append(i.contents)
+    if tag is not None:
+        for i in tag:
+            tag_1_list.append(i.contents)
     tag_list.append(tag_1_list)
 
     # 找到详情页第二行标签
-    tag_2_list = tag_soup.find('p', 'msg ltype')['title'].split()
-    tag_2_list = [tag for tag in tag_2_list if tag != '|']
+    tag_2_list = tag_soup.find('p', 'msg ltype')
+    if tag_2_list is not None:
+        tag_2_list = tag_2_list['title'].split()
+        tag_2_list = [tag for tag in tag_2_list if tag != '|']
 
     tag_list.append(tag_2_list)
 
@@ -217,13 +180,15 @@ def save_job_object_queue_to_csv(final_job_object_queue):
     flag = True
 
     while flag:
-        job_object = final_job_object_queue.get_nowait()
+        job_object = final_job_object_queue.get()
         data = {headers[0]: job_object.job,
                 headers[1]: job_object.company,
                 headers[2]: job_object.address,
                 headers[3]: job_object.salary,
                 headers[4]: job_object.tag}
         datas.append(data)
+        if final_job_object_queue.qsize() == 0:
+            flag = False
 
     if os.path.isfile('51job.csv'):
         with open('51job.csv', 'a', newline='') as f:
